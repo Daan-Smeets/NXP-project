@@ -1,69 +1,91 @@
-import xlwt
+import xlsxwriter
 
-
-def findLine(inputFileName, toFind, outputFileName):
+def findLine(inputFileName, toFind):
     file = open(inputFileName, 'r')
-    txtFile = open(outputFileName, 'w')
-    #print(file.read())
-    lineIndex = 0
-    i = 0
+
+    totalFoundLines = 0
+
+    commandList = []
+    valueList = []
+    sweepList = []
+    descriptionList = []
 
     for currLine in file:
         if toFind in currLine:
-            fullLine = currLine
-            toFindIndex = fullLine.find(toFind)
-            outputLine = fullLine[toFindIndex:]
-            outputLine = outputLine.replace(toFind, "")
-            if "//" in outputLine:
-                commentIndex = outputLine.find("//")
-                outputLine = outputLine[:commentIndex] + "\n"# + "COMMENT "
-                #print(commentIndex)
-            #else:
+            if ".i2cMap." in currLine:
+                totalFoundLines += 1
+                sweepList.append(False)
+                fullLine = currLine
+                toFindIndex = fullLine.find(toFind)
+                outputLine = fullLine[toFindIndex:]
+                outputLine = outputLine.replace(toFind, "")
+                if "//" in outputLine:
+                    commentIndex = outputLine.find("//")
+                    description = outputLine[commentIndex + 3:]
+                    descriptionList.append(description)
+                    outputLine = outputLine[:commentIndex] + "\n"
+                else:
+                    descriptionList.append("")
 
-            #print(outputLine + "Line: " + str(lineIndex))
-            txtFile.write(outputLine)
-            print(outputLine, end="")
-            #print('Line: ' + str(lineIndex + 1))
-        lineIndex+=1
+                if "=" in outputLine:  # Ask why there are lines without '=' (i2cMap.man_state.markForExpect ( 0x9 );)
+                    equalIndex = outputLine.find("=")
+                    semicolonIndex = outputLine.find(";")
+                    command = outputLine[:equalIndex - 1]
+                    value = outputLine[equalIndex + 2: semicolonIndex]
+                    commandList.append(command)
+                    valueList.append(value)
+                else:
+                    totalFoundLines -= 1
+                print(outputLine, end="")
+            elif ".write" in currLine:
+                sweepList.append(True)
+
+    excel("testStatesMy.xlsx", totalFoundLines, commandList, valueList, sweepList, descriptionList)
+
     file.close()
 
-def excel(filename, sheet, list1, list2, x, y, z):
-    book = xlwt.Workbook()
-    sh = book.add_sheet(sheet)
+def excel(filename, totalFoundLines, commandList, valueList, sweepList, descriptionList):
+    row = 0
+    col = 0
 
-    variables = [x, y, z]
-    x_desc = 'Display'
-    y_desc = 'Dominance'
-    z_desc = 'Test'
-    desc = [x_desc, y_desc, z_desc]
+    workbook = xlsxwriter.Workbook(filename)
+    worksheet = workbook.add_worksheet("TestStateLabels")
+    patroon1 = workbook.add_worksheet("Patroon_1")
 
-    col1_name = 'Stimulus Time'
-    col2_name = 'Reaction Time'
+    blueRow = workbook.add_format({"font_color": "white", "bg_color": "#4774c5"})
 
-    #You may need to group the variables together
-    #for n, (v_desc, v) in enumerate(zip(desc, variables)):
-    for n, v_desc, v in enumerate(zip(desc, variables)):
-        sh.write(n, 0, v_desc)
-        sh.write(n, 1, v)
+    worksheet.write(0, 0, "Label Name", blueRow)
+    worksheet.write(0, 1, "Protocol", blueRow)
+    worksheet.write(0, 2, "Settings" ,blueRow)
+    worksheet.write(0, 3, "Concurrent", blueRow)
 
-    n+=1
-
-    sh.write(n, 0, col1_name)
-    sh.write(n, 1, col2_name)
-
-    for m, e1 in enumerate(list1, n+1):
-        sh.write(m, 0, e1)
-
-    for m, e2 in enumerate(list2, n+1):
-        sh.write(m, 1, e2)
-
-    book.save(filename)
+    worksheet.write(1, 0, "Patroon_1")
+    worksheet.write(1, 1, "I2C")
 
 
-findLine("Bandgap.cpp", "registers.i2cMap.", "textFile.txt")
+    patroon1.write(0, 0, "Command", blueRow)
+    patroon1.write(0, 1, "Value", blueRow)
+    patroon1.write(0, 2, "Expected", blueRow)
+    patroon1.write(0, 3, "Sweep", blueRow)
+    patroon1.write(0, 4, "Description", blueRow)
 
+    for i in range(0, totalFoundLines):  # patroon1.write(, , )
+        col = 0
+        row += 1
 
+        patroon1.write(row, col, commandList[i])
+        col += 1
+        patroon1.write(row, col, valueList[i])
+        col += 1
+        col += 1
+        if sweepList[i] == True:
+            patroon1.write(row, col, "FLUSH")
+        col += 1
+        patroon1.write(row, col, descriptionList[i])
+        col += 1
 
-# start()
+    workbook.close()
+
+findLine("Bandgap.cpp", "registers.")
 
 
