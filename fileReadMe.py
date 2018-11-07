@@ -12,11 +12,11 @@ def findLine(input_file_name, to_find):
 
     for curr_line in file:
         if to_find in curr_line:
-            if ".i2cMap." in curr_line:
+            if ".i2cMap." in curr_line: #TODO: FIX to_find AND REMOVE .i2cMap
                 total_found_lines += 1
                 sweep_list.append(False)
 
-                toFindIndex = curr_line.find(to_find)
+                toFindIndex = curr_line.find((to_find))
                 output_line = curr_line[toFindIndex:]
                 output_line = output_line.replace(to_find, "")
 
