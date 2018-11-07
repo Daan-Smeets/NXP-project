@@ -1,87 +1,88 @@
 import xlsxwriter
 
-def findLine(inputFileName, toFind):
-    file = open(inputFileName, 'r')
+def findLine(input_file_name, to_find):
+    file = open(input_file_name, 'r')
 
-    totalFoundLines = 0
+    total_found_lines = 0
 
-    commandList = []
-    valueList = []
-    sweepList = []
-    descriptionList = []
+    command_list = []
+    value_list = []
+    sweep_list = []
+    description_list = []
 
-    for currLine in file:
-        if toFind in currLine:
-            if ".i2cMap." in currLine:
-                totalFoundLines += 1
-                sweepList.append(False)
-                fullLine = currLine
-                toFindIndex = fullLine.find(toFind)
-                outputLine = fullLine[toFindIndex:]
-                outputLine = outputLine.replace(toFind, "")
-                if "//" in outputLine:
-                    commentIndex = outputLine.find("//")
-                    description = outputLine[commentIndex + 3:]
-                    descriptionList.append(description)
-                    outputLine = outputLine[:commentIndex] + "\n"
+    for curr_line in file:
+        if to_find in curr_line:
+            if ".i2cMap." in curr_line:
+                total_found_lines += 1
+                sweep_list.append(False)
+
+                toFindIndex = curr_line.find(to_find)
+                output_line = curr_line[toFindIndex:]
+                output_line = output_line.replace(to_find, "")
+
+                if "//" in output_line:
+                    comment_index = output_line.find("//")
+                    description = output_line[comment_index + 3:]
+                    description_list.append(description)
+                    output_line = output_line[:comment_index] + "\n"
                 else:
-                    descriptionList.append("")
+                    description_list.append("")
 
-                if "=" in outputLine:  # Ask why there are lines without '=' (i2cMap.man_state.markForExpect ( 0x9 );)
-                    equalIndex = outputLine.find("=")
-                    semicolonIndex = outputLine.find(";")
-                    command = outputLine[:equalIndex - 1]
-                    value = outputLine[equalIndex + 2: semicolonIndex]
-                    commandList.append(command)
-                    valueList.append(value)
+                if "=" in output_line:  # Ask why there are lines without '=' (i2cMap.man_state.markForExpect ( 0x9 );)
+                    equal_index = output_line.find("=")
+                    semicolon_index = output_line.find(";")
+                    command = output_line[:equal_index - 1]
+                    value = output_line[equal_index + 2: semicolon_index]
+                    command_list.append(command)
+                    value_list.append(value)
                 else:
-                    totalFoundLines -= 1
-                print(outputLine, end="")
-            elif ".write" in currLine:
-                sweepList.append(True)
+                    total_found_lines -= 1
+                print(output_line, end="")
+            elif ".write" in curr_line:
+                sweep_list.append(True)
 
-    excel("testStatesMy.xlsx", totalFoundLines, commandList, valueList, sweepList, descriptionList)
+    excel("testStatesMy.xlsx", total_found_lines, command_list, value_list, sweep_list, description_list)
 
     file.close()
 
-def excel(filename, totalFoundLines, commandList, valueList, sweepList, descriptionList):
+def excel(file_name, total_found_lines, command_list, value_list, sweep_list, description_list):
     row = 0
     col = 0
 
-    workbook = xlsxwriter.Workbook(filename)
-    worksheet = workbook.add_worksheet("TestStateLabels")
-    patroon1 = workbook.add_worksheet("Patroon_1")
+    workbook = xlsxwriter.Workbook(file_name)
+    test_state_labels = workbook.add_worksheet("test_state_labels")
 
-    blueRow = workbook.add_format({"font_color": "white", "bg_color": "#4774c5"})
+    patroon_1 = workbook.add_worksheet("Patroon_1")
 
-    worksheet.write(0, 0, "Label Name", blueRow)
-    worksheet.write(0, 1, "Protocol", blueRow)
-    worksheet.write(0, 2, "Settings" ,blueRow)
-    worksheet.write(0, 3, "Concurrent", blueRow)
+    blue_row = workbook.add_format({"font_color": "white", "bg_color": "#4774c5"})
 
-    worksheet.write(1, 0, "Patroon_1")
-    worksheet.write(1, 1, "I2C")
+    test_state_labels.write(0, 0, "Label Name", blue_row)
+    test_state_labels.write(0, 1, "Protocol", blue_row)
+    test_state_labels.write(0, 2, "Settings" ,blue_row)
+    test_state_labels.write(0, 3, "Concurrent", blue_row)
+
+    test_state_labels.write(1, 0, "Patroon_1")
+    test_state_labels.write(1, 1, "I2C")
 
 
-    patroon1.write(0, 0, "Command", blueRow)
-    patroon1.write(0, 1, "Value", blueRow)
-    patroon1.write(0, 2, "Expected", blueRow)
-    patroon1.write(0, 3, "Sweep", blueRow)
-    patroon1.write(0, 4, "Description", blueRow)
+    patroon_1.write(0, 0, "Command", blue_row)
+    patroon_1.write(0, 1, "Value", blue_row)
+    patroon_1.write(0, 2, "Expected", blue_row)
+    patroon_1.write(0, 3, "Sweep", blue_row)
+    patroon_1.write(0, 4, "Description", blue_row)
 
-    for i in range(0, totalFoundLines):  # patroon1.write(, , )
+    for i in range(0, total_found_lines):  # patroon_1.write(, , )
         col = 0
         row += 1
 
-        patroon1.write(row, col, commandList[i])
+        patroon_1.write(row, col, command_list[i])
         col += 1
-        patroon1.write(row, col, valueList[i])
+        patroon_1.write(row, col, value_list[i])
+        col += 2
+        if sweep_list[i] == True:
+            patroon_1.write(row, col, "FLUSH")
         col += 1
-        col += 1
-        if sweepList[i] == True:
-            patroon1.write(row, col, "FLUSH")
-        col += 1
-        patroon1.write(row, col, descriptionList[i])
+        patroon_1.write(row, col, description_list[i])
         col += 1
 
     workbook.close()
